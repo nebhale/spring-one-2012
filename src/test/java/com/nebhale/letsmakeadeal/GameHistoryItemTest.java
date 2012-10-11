@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-public class GameHistoryItemTest {
+public final class GameHistoryItemTest {
 
     private final GameHistoryItem historyItem = new GameHistoryItem(1L, GameStatus.AWAITING_INITIAL_SELECTION);
 

@@ -33,7 +33,7 @@ import com.nebhale.letsmakeadeal.Door;
 import com.nebhale.letsmakeadeal.DoorDoesNotExistException;
 import com.nebhale.letsmakeadeal.Game;
 
-public class DoorResourceFactoryTest {
+public final class DoorResourceFactoryTest {
 
     private final Game game = new Game(Long.valueOf(1), asSet(new Door(2L, null)));
 

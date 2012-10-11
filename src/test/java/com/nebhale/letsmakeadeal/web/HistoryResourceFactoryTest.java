@@ -38,7 +38,7 @@ import com.nebhale.letsmakeadeal.Game;
 import com.nebhale.letsmakeadeal.GameStatus;
 import com.nebhale.letsmakeadeal.IllegalTransitionException;
 
-public class HistoryResourceFactoryTest {
+public final class HistoryResourceFactoryTest {
 
     private final Game game = new Game(1L, asSet(new Door(2L, DoorContent.SMALL_FURRY_ANIMAL), new Door(3L, DoorContent.SMALL_FURRY_ANIMAL)));
 
@@ -46,8 +46,8 @@ public class HistoryResourceFactoryTest {
 
     @Test
     public void testCreate() throws IllegalTransitionException, DoorDoesNotExistException {
-        game.select(2L);
-        HistoryResource resource = this.resourceFactory.create(game);
+        this.game.select(2L);
+        HistoryResource resource = this.resourceFactory.create(this.game);
         assertEquals(1, resource.getLinks().size());
         assertEquals(new Link("http://localhost/games/1/history"), resource.getLink(Link.REL_SELF));
 
@@ -61,7 +61,7 @@ public class HistoryResourceFactoryTest {
         DoorHistoryItemResource historyItem1 = (DoorHistoryItemResource) historyItems.get(1);
         assertEquals("http://localhost/games/1/doors/2", historyItem1.getDoor());
         assertEquals(DoorStatus.SELECTED, historyItem1.getStatus());
-        
+
         DoorHistoryItemResource historyItem2 = (DoorHistoryItemResource) historyItems.get(2);
         assertEquals("http://localhost/games/1/doors/3", historyItem2.getDoor());
         assertEquals(DoorStatus.OPEN, historyItem2.getStatus());

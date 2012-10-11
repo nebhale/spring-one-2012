@@ -23,15 +23,15 @@ import java.util.Set;
 
 import org.junit.Test;
 
-public class DoorsResourceTest {
+public final class DoorsResourceTest {
 
     private final Set<DoorResource> doors = Collections.emptySet();
 
-    private final DoorsResource resource = new DoorsResource(doors);
+    private final DoorsResource resource = new DoorsResource(this.doors);
 
     @Test
     public void test() {
-        assertSame(doors, resource.getDoors());
+        assertSame(this.doors, this.resource.getDoors());
     }
 
 }

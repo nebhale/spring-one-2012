@@ -23,7 +23,7 @@ import org.junit.Test;
 import com.nebhale.letsmakeadeal.Game;
 import com.nebhale.letsmakeadeal.GameDoesNotExistException;
 
-public class InMemoryGameRepositoryTest {
+public final class InMemoryGameRepositoryTest {
 
     private final InMemoryGameRepository gameRepository = new InMemoryGameRepository();
 

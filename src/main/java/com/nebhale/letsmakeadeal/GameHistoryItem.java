@@ -28,7 +28,7 @@ public final class GameHistoryItem {
     }
 
     public Long getId() {
-        return id;
+        return this.id;
     }
 
     public GameStatus getStatus() {

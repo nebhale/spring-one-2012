@@ -31,7 +31,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import com.nebhale.letsmakeadeal.Door;
 import com.nebhale.letsmakeadeal.Game;
 
-public class GameResourceFactoryTest {
+public final class GameResourceFactoryTest {
 
     private final Game game = new Game(1L, Collections.<Door> emptySet());
 

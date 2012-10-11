@@ -27,7 +27,7 @@ public final class DoorHistoryItemTest {
     @Test
     public void test() {
         assertEquals(Long.valueOf(1), this.historyItem.getGameId());
-        assertEquals(Long.valueOf(2L), historyItem.getDoorId());
+        assertEquals(Long.valueOf(2L), this.historyItem.getDoorId());
         assertEquals(DoorStatus.OPEN, this.historyItem.getStatus());
     }
 }

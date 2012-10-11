@@ -31,7 +31,7 @@ final class DoorsResource extends ResourceSupport {
     DoorsResource() {
         this(null);
     }
-    
+
     DoorsResource(Set<DoorResource> doors) {
         this.doors = doors;
     }

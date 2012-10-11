@@ -28,8 +28,8 @@ public final class DoorHistoryItemResourceTest {
 
     @Test
     public void test() {
-        assertEquals("door", resource.getDoor());
-        assertEquals(DoorStatus.OPEN, resource.getStatus());
+        assertEquals("door", this.resource.getDoor());
+        assertEquals(DoorStatus.OPEN, this.resource.getStatus());
     }
 
 }

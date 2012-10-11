@@ -27,11 +27,11 @@ public final class HistoryResourceTest {
 
     private final List<Object> history = Collections.emptyList();
 
-    private final HistoryResource resource = new HistoryResource(history);
+    private final HistoryResource resource = new HistoryResource(this.history);
 
     @Test
     public void test() {
-        assertSame(history, resource.getHistory());
+        assertSame(this.history, this.resource.getHistory());
     }
 
 }

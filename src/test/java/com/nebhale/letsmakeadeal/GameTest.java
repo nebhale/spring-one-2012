@@ -23,7 +23,7 @@ import java.util.Set;
 
 import org.junit.Test;
 
-public class GameTest {
+public final class GameTest {
 
     private final Game game = new Game(1L, asSet(new Door(2L, DoorContent.SMALL_FURRY_ANIMAL), new Door(3L, DoorContent.SMALL_FURRY_ANIMAL),
         new Door(4L, DoorContent.JUERGEN)));

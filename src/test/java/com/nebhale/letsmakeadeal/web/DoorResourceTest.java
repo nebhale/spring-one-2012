@@ -24,16 +24,16 @@ import com.nebhale.letsmakeadeal.Door;
 import com.nebhale.letsmakeadeal.DoorContent;
 import com.nebhale.letsmakeadeal.DoorStatus;
 
-public class DoorResourceTest {
+public final class DoorResourceTest {
 
     private final Door door = new Door(1L, DoorContent.JUERGEN);
 
-    private final DoorResource resource = new DoorResource(door);
+    private final DoorResource resource = new DoorResource(this.door);
 
     @Test
     public void test() {
-        assertEquals(DoorContent.UNKNOWN, resource.getContent());
-        assertEquals(DoorStatus.CLOSED, resource.getStatus());
+        assertEquals(DoorContent.UNKNOWN, this.resource.getContent());
+        assertEquals(DoorStatus.CLOSED, this.resource.getStatus());
     }
 
 }

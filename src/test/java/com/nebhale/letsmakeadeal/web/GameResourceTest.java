@@ -26,15 +26,15 @@ import com.nebhale.letsmakeadeal.Door;
 import com.nebhale.letsmakeadeal.Game;
 import com.nebhale.letsmakeadeal.GameStatus;
 
-public class GameResourceTest {
+public final class GameResourceTest {
 
     private final Game game = new Game(1L, Collections.<Door> emptySet());
 
-    private final GameResource resource = new GameResource(game);
+    private final GameResource resource = new GameResource(this.game);
 
     @Test
     public void test() {
-        assertEquals(GameStatus.AWAITING_INITIAL_SELECTION, resource.getStatus());
+        assertEquals(GameStatus.AWAITING_INITIAL_SELECTION, this.resource.getStatus());
     }
 
 }

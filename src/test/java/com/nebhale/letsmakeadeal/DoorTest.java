@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-public class DoorTest {
+public final class DoorTest {
 
     private final Door door = new Door(1L, DoorContent.JUERGEN);
 

@@ -28,7 +28,7 @@ public final class GameHistoryItemResourceTest {
 
     @Test
     public void test() {
-        assertEquals("game", resource.getGame());
+        assertEquals("game", this.resource.getGame());
         assertEquals(GameStatus.AWAITING_INITIAL_SELECTION, this.resource.getStatus());
     }
 
