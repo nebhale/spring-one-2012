@@ -21,31 +21,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.springframework.hateoas.ResourceSupport;
 
-import com.nebhale.letsmakeadeal.Door;
 import com.nebhale.letsmakeadeal.DoorContent;
 import com.nebhale.letsmakeadeal.DoorStatus;
 
 @XmlRootElement(name = "door")
 final class DoorResource extends ResourceSupport {
 
-    private final Door door;
-
-    DoorResource() {
-        this(null);
-    }
-
-    DoorResource(Door door) {
-        this.door = door;
-    }
+    @XmlAttribute
+    public volatile DoorContent content;
 
     @XmlAttribute
-    public DoorContent getContent() {
-        return this.door.getContent();
-    }
-
-    @XmlAttribute
-    public DoorStatus getStatus() {
-        return this.door.getStatus();
-    }
+    public volatile DoorStatus status;
 
 }

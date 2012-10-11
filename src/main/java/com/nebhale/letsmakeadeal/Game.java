@@ -16,10 +16,8 @@
 
 package com.nebhale.letsmakeadeal;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -30,8 +28,6 @@ public final class Game implements Identifiable<Long> {
     private final Long id;
 
     private final Map<Long, Door> doors;
-
-    private final List<Object> history = new ArrayList<Object>();
 
     private final Object monitor = new Object();
 
@@ -46,8 +42,6 @@ public final class Game implements Identifiable<Long> {
         }
 
         this.status = GameStatus.AWAITING_INITIAL_SELECTION;
-
-        this.history.add(new GameHistoryItem(this.id, this.status));
     }
 
     public void select(Long doorId) throws IllegalTransitionException, DoorDoesNotExistException {
@@ -58,12 +52,10 @@ public final class Game implements Identifiable<Long> {
 
             Door door = getDoor(doorId);
             door.setStatus(DoorStatus.SELECTED);
-            this.history.add(new DoorHistoryItem(this.id, doorId, DoorStatus.SELECTED));
 
             openHintDoor();
 
             this.status = GameStatus.AWAITING_FINAL_SELECTION;
-            this.history.add(new GameHistoryItem(this.id, this.status));
         }
     }
 
@@ -79,15 +71,12 @@ public final class Game implements Identifiable<Long> {
             }
 
             door.setStatus(DoorStatus.OPEN);
-            this.history.add(new DoorHistoryItem(this.id, doorId, DoorStatus.OPEN));
 
             if (DoorContent.JUERGEN == door.getContent()) {
                 this.status = GameStatus.WON;
             } else {
                 this.status = GameStatus.LOST;
             }
-
-            this.history.add(new GameHistoryItem(this.id, this.status));
         }
     }
 
@@ -107,10 +96,6 @@ public final class Game implements Identifiable<Long> {
         return new HashSet<Door>(this.doors.values());
     }
 
-    public List<Object> getHistory() {
-        return this.history;
-    }
-
     public GameStatus getStatus() {
         synchronized (this.monitor) {
             return this.status;
@@ -121,7 +106,6 @@ public final class Game implements Identifiable<Long> {
         for (Door door : getDoors()) {
             if (DoorStatus.CLOSED == door.getStatus() && DoorContent.SMALL_FURRY_ANIMAL == door.peekContent()) {
                 door.setStatus(DoorStatus.OPEN);
-                this.history.add(new DoorHistoryItem(this.id, door.getId(), DoorStatus.OPEN));
                 break;
             }
         }

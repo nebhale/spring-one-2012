@@ -21,25 +21,12 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.springframework.hateoas.ResourceSupport;
 
-import com.nebhale.letsmakeadeal.Game;
 import com.nebhale.letsmakeadeal.GameStatus;
 
 @XmlRootElement(name = "game")
 final class GameResource extends ResourceSupport {
 
-    private final Game game;
-
-    GameResource() {
-        this(null);
-    }
-
-    GameResource(Game game) {
-        this.game = game;
-    }
-
     @XmlAttribute
-    public GameStatus getStatus() {
-        return this.game.getStatus();
-    }
+    public volatile GameStatus status;
 
 }
