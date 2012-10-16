@@ -19,33 +19,62 @@ package com.nebhale.letsmakeadeal.web;
 import static com.jayway.jsonassert.JsonAssert.collectionWithSize;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
-import static org.springframework.test.web.server.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.server.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.server.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.server.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.server.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.server.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.server.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.server.setup.MockMvcBuilders.xmlConfigSetup;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.mock.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.mock.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.mock.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.mock.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.mock.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.mock.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.mock.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.mock.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 import java.io.UnsupportedEncodingException;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.Test;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.server.MockMvc;
-import org.springframework.test.web.server.MvcResult;
+import org.springframework.test.web.mock.servlet.MockMvc;
 
-import com.jayway.jsonpath.JsonPath;
+import com.nebhale.letsmakeadeal.Door;
+import com.nebhale.letsmakeadeal.DoorContent;
+import com.nebhale.letsmakeadeal.Game;
+import com.nebhale.letsmakeadeal.GameDoesNotExistException;
+import com.nebhale.letsmakeadeal.GameRepository;
 
 public final class GamesControllerTest {
 
-    private static final String LINK_FORMAT = "$.links[?(@.rel==%s)].href[0]";
+    private static final String GAME_LOCATION = "http://localhost/games/0";
 
-    private final MockMvc mockMvc = xmlConfigSetup("file:src/main/webapp/WEB-INF/spring/root-context.xml",
-        "file:src/main/webapp/WEB-INF/spring/appServlet/servlet-context.xml").build();
+    private static final String DOORS_LOCATION = GAME_LOCATION + "/doors";
+
+    private static final String DOOR_LOCATION = DOORS_LOCATION + "/1";
+
+    private static final String HISTORY_LOCATION = GAME_LOCATION + "/history";
+
+    private final Game game;
+    {
+        Set<Door> doors = new HashSet<Door>();
+        doors.add(new Door(1L, DoorContent.SMALL_FURRY_ANIMAL));
+        doors.add(new Door(2L, DoorContent.SMALL_FURRY_ANIMAL));
+        doors.add(new Door(3L, DoorContent.JUERGEN));
+        game = new Game(0L, doors);
+    }
+
+    private final GameRepository gameRepository = mock(GameRepository.class);
+
+    private final MockMvc mockMvc = standaloneSetup(
+        new GamesController(gameRepository, new DoorResourceFactory(), new GameResourceFactory(), new HistoryResourceFactory())).build();
 
     @Test
     public void createGame() throws Exception {
+        when(this.gameRepository.create()).thenReturn(game);
+
         this.mockMvc.perform(post("/games")) //
         .andExpect(status().isCreated()) //
         .andExpect(header().string("Location", "http://localhost/games/0"));
@@ -54,49 +83,45 @@ public final class GamesControllerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void showGame() throws Exception {
-        String gameLocation = getLocation(this.mockMvc.perform(post("/games")).andReturn());
+        when(this.gameRepository.retrieve(0L)).thenReturn(game);
 
-        this.mockMvc.perform(get(gameLocation).accept(MediaType.APPLICATION_JSON)) //
+        this.mockMvc.perform(get(GAME_LOCATION).accept(MediaType.APPLICATION_JSON)) //
         .andExpect(status().isOk()) //
         .andExpect(jsonPath("$.status").value("AWAITING_INITIAL_SELECTION")) //
         .andExpect(jsonPath("$.links").value(collectionWithSize(equalTo(3)))) //
-        .andExpect(jsonPath("$.links[?(@.rel==self)].href[0]").value(gameLocation)) //
-        .andExpect(jsonPath("$.links[?(@.rel==doors)].href[0]").value(gameLocation + "/doors")) //
-        .andExpect(jsonPath("$.links[?(@.rel==history)].href[0]").value(gameLocation + "/history"));
+        .andExpect(jsonPath("$.links[?(@.rel==self)].href[0]").value(GAME_LOCATION)) //
+        .andExpect(jsonPath("$.links[?(@.rel==doors)].href[0]").value(GAME_LOCATION + "/doors")) //
+        .andExpect(jsonPath("$.links[?(@.rel==history)].href[0]").value(GAME_LOCATION + "/history"));
     }
 
     @Test
-    public void showGameDoesNotExist() throws Exception {
-        String gameLocation = getLocation(this.mockMvc.perform(post("/games")).andReturn());
-        this.mockMvc.perform(delete(gameLocation)).andReturn();
+    public void showGameGameDoesNotExist() throws Exception {
+        when(this.gameRepository.retrieve(0L)).thenThrow(new GameDoesNotExistException(0L));
 
-        this.mockMvc.perform(get(gameLocation).accept(MediaType.APPLICATION_JSON)) //
+        this.mockMvc.perform(get(GAME_LOCATION).accept(MediaType.APPLICATION_JSON)) //
         .andExpect(status().isNotFound()) //
         .andExpect(content().string("Game '0' does not exist"));
     }
 
     @Test
     public void showGameInvalidAccept() throws Exception {
-        String gameLocation = getLocation(this.mockMvc.perform(post("/games")).andReturn());
-
-        this.mockMvc.perform(get(gameLocation).accept(MediaType.APPLICATION_XML)) //
-        .andExpect(status().isMethodNotAllowed());
+        this.mockMvc.perform(get(GAME_LOCATION).accept(MediaType.APPLICATION_OCTET_STREAM)) //
+        .andExpect(status().isNotAcceptable());
     }
 
     @Test
     public void destroyGame() throws Exception {
-        String gameLocation = getLocation(this.mockMvc.perform(post("/games")).andReturn());
-
-        this.mockMvc.perform(delete(gameLocation)) //
+        this.mockMvc.perform(delete(GAME_LOCATION)) //
         .andExpect(status().isOk());
+
+        verify(this.gameRepository).remove(0L);
     }
 
     @Test
-    public void destroyGameDoesNotExist() throws Exception {
-        String gameLocation = getLocation(this.mockMvc.perform(post("/games")).andReturn());
-        this.mockMvc.perform(delete(gameLocation)).andReturn();
+    public void destroyGameGameDoesNotExist() throws Exception {
+        doThrow(new GameDoesNotExistException(0L)).when(this.gameRepository).remove(0L);
 
-        this.mockMvc.perform(delete(gameLocation)) //
+        this.mockMvc.perform(delete(GAME_LOCATION)) //
         .andExpect(status().isNotFound()) //
         .andExpect(content().string("Game '0' does not exist"));
     }
@@ -104,40 +129,35 @@ public final class GamesControllerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void showDoors() throws Exception {
-        String gameLocation = getLocation(this.mockMvc.perform(post("/games")).andReturn());
-        String doorsLocation = getLinkedLocation(gameLocation, "doors");
+        when(this.gameRepository.retrieve(0L)).thenReturn(game);
 
-        this.mockMvc.perform(get(doorsLocation).accept(MediaType.APPLICATION_JSON)) //
+        this.mockMvc.perform(get(DOORS_LOCATION).accept(MediaType.APPLICATION_JSON)) //
         .andExpect(status().isOk()) //
         .andExpect(jsonPath("$.doors").isArray()) //
         .andExpect(jsonPath("$.doors").value(collectionWithSize(equalTo(3)))) //
         .andExpect(jsonPath("$.doors[*].status").value(hasItems("CLOSED"))) //
         .andExpect(jsonPath("$.doors[*].content").value(hasItems("UNKNOWN"))) //
         .andExpect(
-            jsonPath("$.doors[*].links[?(@.rel==self)].href").value(hasItems(doorsLocation + "/1", doorsLocation + "/2", doorsLocation + "/3"))) //
+            jsonPath("$.doors[*].links[?(@.rel==self)].href").value(hasItems(DOORS_LOCATION + "/1", DOORS_LOCATION + "/2", DOORS_LOCATION + "/3"))) //
         .andExpect(jsonPath("$.links").value(collectionWithSize(equalTo(1)))) //
-        .andExpect(jsonPath("$.links[?(@.rel==self)].href[0]").value(doorsLocation));
+        .andExpect(jsonPath("$.links[?(@.rel==self)].href[0]").value(DOORS_LOCATION));
     }
 
     @Test
     public void showDoorsGameDoesNotExist() throws Exception {
-        String gameLocation = getLocation(this.mockMvc.perform(post("/games")).andReturn());
-        String doorsLocation = getLinkedLocation(gameLocation, "doors");
-        this.mockMvc.perform(delete(gameLocation)).andReturn();
+        when(this.gameRepository.retrieve(0L)).thenThrow(new GameDoesNotExistException(0L));
 
-        this.mockMvc.perform(get(doorsLocation)) //
+        this.mockMvc.perform(get(DOORS_LOCATION)) //
         .andExpect(status().isNotFound()) //
         .andExpect(content().string("Game '0' does not exist"));
     }
 
     @Test
     public void modifyDoorSelect() throws Exception {
-        String gameLocation = getLocation(this.mockMvc.perform(post("/games")).andReturn());
-        String doorsLocation = getLinkedLocation(gameLocation, "doors");
-        String doorLocation = getDoorLocation(doorsLocation);
+        when(this.gameRepository.retrieve(0L)).thenReturn(game);
 
         this.mockMvc.perform(
-            post(doorLocation).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).body(
+            post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
                 getBytes("{ \"status\" : \"SELECTED\" }"))) //
         .andExpect(status().isOk()) //
         .andExpect(jsonPath("$.status").value("SELECTED"));
@@ -145,87 +165,93 @@ public final class GamesControllerTest {
 
     @Test
     public void modifyDoorOpen() throws Exception {
-        String gameLocation = getLocation(this.mockMvc.perform(post("/games")).andReturn());
-        String doorsLocation = getLinkedLocation(gameLocation, "doors");
-        String doorLocation = getDoorLocation(doorsLocation);
+        when(this.gameRepository.retrieve(0L)).thenReturn(game);
+        game.select(1L);
 
         this.mockMvc.perform(
-            post(doorLocation).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).body(
-                getBytes("{ \"status\" : \"SELECTED\" }"))) //
-        .andExpect(status().isOk()) //
-        .andExpect(jsonPath("$.status").value("SELECTED"));
-
-        this.mockMvc.perform(
-            post(doorLocation).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).body(getBytes("{ \"status\" : \"OPEN\" }"))) //
+            post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
+                getBytes("{ \"status\" : \"OPEN\" }"))) //
         .andExpect(status().isOk()) //
         .andExpect(jsonPath("$.status").value("OPEN"));
     }
 
     @Test
     public void modifyDoorClosed() throws Exception {
-        String gameLocation = getLocation(this.mockMvc.perform(post("/games")).andReturn());
-        String doorsLocation = getLinkedLocation(gameLocation, "doors");
-        String doorLocation = getDoorLocation(doorsLocation);
+        when(this.gameRepository.retrieve(0L)).thenReturn(game);
 
         this.mockMvc.perform(
-            post(doorLocation).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).body(
+            post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
                 getBytes("{ \"status\" : \"CLOSED\" }"))) //
         .andExpect(status().isConflict()) //
         .andExpect(content().string("It is illegal to transition door '1' in game '0' to 'CLOSED'"));
     }
 
     @Test
-    public void modifyDoorNoStatus() throws UnsupportedEncodingException, Exception {
-        String gameLocation = getLocation(this.mockMvc.perform(post("/games")).andReturn());
-        String doorsLocation = getLinkedLocation(gameLocation, "doors");
-        String doorLocation = getDoorLocation(doorsLocation);
-
-        this.mockMvc.perform(post(doorLocation).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).body(getBytes("{}"))) //
+    public void modifyDoorMissingKey() throws Exception {
+        this.mockMvc.perform(post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(getBytes("{}"))) //
         .andExpect(status().isBadRequest()) //
         .andExpect(content().string("Payload is missing key 'status'"));
     }
 
     @Test
-    public void modifyDoorBadStatus() throws UnsupportedEncodingException, Exception {
-        String gameLocation = getLocation(this.mockMvc.perform(post("/games")).andReturn());
-        String doorsLocation = getLinkedLocation(gameLocation, "doors");
-        String doorLocation = getDoorLocation(doorsLocation);
+    public void modifyDoorGameDoesNotExist() throws Exception {
+        when(this.gameRepository.retrieve(0L)).thenThrow(new GameDoesNotExistException(0L));
 
         this.mockMvc.perform(
-            post(doorLocation).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).body(getBytes("{ \"status\" : \"foo\" }"))) //
+            post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
+                getBytes("{ \"status\" : \"SELECTED\" }"))) //
+        .andExpect(status().isNotFound()) //
+        .andExpect(content().string("Game '0' does not exist"));
+    }
+
+    @Test
+    public void modifyDoorDoorDoesNotExist() throws Exception {
+        when(this.gameRepository.retrieve(0L)).thenReturn(game);
+
+        this.mockMvc.perform(
+            post("http://localhost/games/0/doors/4").contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
+                getBytes("{ \"status\" : \"SELECTED\" }"))) //
+        .andExpect(status().isNotFound()) //
+        .andExpect(content().string("Door '4' in game '0' does not exist"));
+    }
+
+    @Test
+    public void modifyDoorIllegalArgumentException() throws Exception {
+        this.mockMvc.perform(
+            post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(getBytes("{ \"status\": \"foo\"}"))) //
         .andExpect(status().isBadRequest()) //
         .andExpect(content().string("'foo' is an illegal value for key 'status'"));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void modifyDoorIllegalTransition() throws Exception {
-        String gameLocation = getLocation(this.mockMvc.perform(post("/games")).andReturn());
-        String doorsLocation = getLinkedLocation(gameLocation, "doors");
-        String doorLocation = getDoorLocation(doorsLocation);
+    public void showHistory() throws Exception {
+        when(this.gameRepository.retrieve(0L)).thenReturn(game);
+        game.select(2L);
 
-        this.mockMvc.perform(
-            post(doorLocation).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).body(getBytes("{ \"status\" : \"open\" }"))) //
-        .andExpect(status().isConflict()) //
-        .andExpect(content().string("It is illegal to transition game '0' from 'AWAITING_INITIAL_SELECTION' to 'WON'"));
+        this.mockMvc.perform(get(HISTORY_LOCATION).accept(MediaType.APPLICATION_JSON)) //
+        .andExpect(status().isOk()) //
+        .andExpect(jsonPath("$.history").isArray()) //
+        .andExpect(jsonPath("$.history").value(collectionWithSize(equalTo(4)))) //
+        .andExpect(jsonPath("$.history[*].game").value(hasItems(GAME_LOCATION))) //
+        .andExpect(jsonPath("$.history[*].door").value(hasItems(DOOR_LOCATION))) //
+        .andExpect(jsonPath("$.history[*].status").value(hasItems("AWAITING_INITIAL_SELECTION", "SELECTED", "OPEN", "AWAITING_FINAL_SELECTION"))) //
+        .andExpect(jsonPath("$.links").value(collectionWithSize(equalTo(1)))) //
+        .andExpect(jsonPath("$.links[?(@.rel==self)].href[0]").value(HISTORY_LOCATION));
     }
 
-    private String getLocation(MvcResult mvcResult) {
-        return mvcResult.getResponse().getHeader("Location");
-    }
+    @Test
+    public void showHistoryGameDoesNotExist() throws Exception {
+        when(this.gameRepository.retrieve(0L)).thenThrow(new GameDoesNotExistException(0L));
 
-    private String getLinkedLocation(String location, String rel) throws Exception {
-        String json = this.mockMvc.perform(get(location)).andReturn().getResponse().getContentAsString();
-        return JsonPath.read(json, String.format(LINK_FORMAT, rel));
+        this.mockMvc.perform(get(HISTORY_LOCATION).accept(MediaType.APPLICATION_JSON)) //
+        .andExpect(status().isNotFound()) //
+        .andExpect(content().string("Game '0' does not exist"));
+
     }
 
     private byte[] getBytes(String s) throws UnsupportedEncodingException {
         return s.getBytes("UTF8");
-    }
-
-    private String getDoorLocation(String location) throws UnsupportedEncodingException, Exception {
-        String json = this.mockMvc.perform(get(location)).andReturn().getResponse().getContentAsString();
-        return JsonPath.read(json, "$.doors[*].links[?(@.rel==self)].href[0]");
-
     }
 
 }
