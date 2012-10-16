@@ -120,6 +120,11 @@ final class GamesController {
         return new ResponseEntity<String>(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(DoorDoesNotExistException.class)
+    ResponseEntity<String> handleDoorDoesNotExistException(DoorDoesNotExistException e) {
+        return new ResponseEntity<String>(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
         return new ResponseEntity<String>(e.getMessage(), HttpStatus.BAD_REQUEST);
