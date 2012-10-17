@@ -16,8 +16,6 @@
 
 package com.nebhale.letsmakeadeal.web;
 
-import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
-
 import org.springframework.hateoas.mvc.ResourceAssemblerSupport;
 import org.springframework.stereotype.Component;
 
@@ -31,10 +29,7 @@ final class GameResourceAssembler extends ResourceAssemblerSupport<Game, GameRes
     }
 
     public GameResource toResource(Game game) {
-        GameResource resource = createResource(game);
-        resource.status = game.getStatus();
-        resource.add(linkTo(GamesController.class).slash(game).slash("doors").withRel("doors"));
-        return resource;
+        // TODO Implementation
     }
 
 }

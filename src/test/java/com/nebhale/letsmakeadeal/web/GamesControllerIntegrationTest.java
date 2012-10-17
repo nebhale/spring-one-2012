@@ -19,38 +19,17 @@ package com.nebhale.letsmakeadeal.web;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.mock.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.mock.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.mock.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.mock.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.mock.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
 import java.io.UnsupportedEncodingException;
 
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.test.web.mock.servlet.MockMvc;
-import org.springframework.web.context.WebApplicationContext;
 
 import com.jayway.jsonpath.JsonPath;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@WebAppConfiguration
-@ContextConfiguration({ "file:src/main/webapp/WEB-INF/spring/root-context.xml", "file:src/main/webapp/WEB-INF/spring/appServlet/servlet-context.xml" })
 public final class GamesControllerIntegrationTest {
-
-    @Autowired
-    private volatile WebApplicationContext webApplicationContext;
-
-    private volatile MockMvc mockMvc;
-
-    @Before
-    public void before() {
-        this.mockMvc = webAppContextSetup(this.webApplicationContext).build();
-    }
 
     @Test
     public void playAGame() throws Exception {
@@ -59,18 +38,18 @@ public final class GamesControllerIntegrationTest {
         .andReturn().getResponse().getHeader("Location");
 
         String doorsLocation = getLinkedLocation(gameLocation, "doors");
-        this.mockMvc.perform(post(getDoorLocation(doorsLocation, 1)) //
+        this.mockMvc.perform(put(getDoorLocation(doorsLocation, 1)) //
         .contentType(MediaType.APPLICATION_JSON) //
         .content(getBytes("{ \"status\": \"SELECTED\"}"))) //
         .andExpect(status().isOk());
 
         if ("CLOSED".equals(getDoorStatus(doorsLocation, 0))) {
-            this.mockMvc.perform(post(getDoorLocation(doorsLocation, 0)) //
+            this.mockMvc.perform(put(getDoorLocation(doorsLocation, 0)) //
             .contentType(MediaType.APPLICATION_JSON) //
             .content(getBytes("{ \"status\": \"OPEN\"}"))) //
             .andExpect(status().isOk());
         } else {
-            this.mockMvc.perform(post(getDoorLocation(doorsLocation, 2)) //
+            this.mockMvc.perform(put(getDoorLocation(doorsLocation, 2)) //
             .contentType(MediaType.APPLICATION_JSON) //
             .content(getBytes("{ \"status\": \"OPEN\"}"))) //
             .andExpect(status().isOk());

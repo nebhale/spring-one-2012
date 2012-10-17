@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.mock.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.mock.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.mock.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.mock.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.mock.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.mock.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.mock.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -63,42 +64,13 @@ public final class GamesControllerTest {
         game = new Game(0L, doors);
     }
 
-    private final GameRepository gameRepository = mock(GameRepository.class);
+    // TODO Create MockMvc
 
-    private final MockMvc mockMvc = standaloneSetup(
-        new GamesController(gameRepository, new GameResourceAssembler(), new DoorsResourceAssembler(new DoorResourceAssembler()))) //
-    .build();
+    // TODO createGame()
+    
+    // TODO showGame()
 
-    @Test
-    public void createGame() throws Exception {
-        when(this.gameRepository.create()).thenReturn(game);
-
-        this.mockMvc.perform(post("/games")) //
-        .andExpect(status().isCreated()) //
-        .andExpect(header().string("Location", "http://localhost/games/0"));
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void showGame() throws Exception {
-        when(this.gameRepository.retrieve(0L)).thenReturn(game);
-
-        this.mockMvc.perform(get(GAME_LOCATION).accept(MediaType.APPLICATION_JSON)) //
-        .andExpect(status().isOk()) //
-        .andExpect(jsonPath("$.status").value("AWAITING_INITIAL_SELECTION")) //
-        .andExpect(jsonPath("$.links").value(collectionWithSize(equalTo(2)))) //
-        .andExpect(jsonPath("$.links[?(@.rel==self)].href[0]").value(GAME_LOCATION)) //
-        .andExpect(jsonPath("$.links[?(@.rel==doors)].href[0]").value(GAME_LOCATION + "/doors"));
-    }
-
-    @Test
-    public void showGameGameDoesNotExist() throws Exception {
-        when(this.gameRepository.retrieve(0L)).thenThrow(new GameDoesNotExistException(0L));
-
-        this.mockMvc.perform(get(GAME_LOCATION).accept(MediaType.APPLICATION_JSON)) //
-        .andExpect(status().isNotFound()) //
-        .andExpect(content().string("Game '0' does not exist"));
-    }
+    // TODO showGameDoesNotExist()
 
     @Test
     public void showGameInvalidAccept() throws Exception {
@@ -154,7 +126,7 @@ public final class GamesControllerTest {
         when(this.gameRepository.retrieve(0L)).thenReturn(game);
 
         this.mockMvc.perform(
-            post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
+            put(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
                 getBytes("{ \"status\" : \"SELECTED\" }"))) //
         .andExpect(status().isOk());
     }
@@ -165,7 +137,7 @@ public final class GamesControllerTest {
         game.select(1L);
 
         this.mockMvc.perform(
-            post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
+            put(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
                 getBytes("{ \"status\" : \"OPEN\" }"))) //
         .andExpect(status().isOk());
     }
@@ -175,7 +147,7 @@ public final class GamesControllerTest {
         when(this.gameRepository.retrieve(0L)).thenReturn(game);
 
         this.mockMvc.perform(
-            post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
+            put(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
                 getBytes("{ \"status\" : \"CLOSED\" }"))) //
         .andExpect(status().isConflict()) //
         .andExpect(content().string("It is illegal to transition door '1' in game '0' to 'CLOSED'"));
@@ -183,7 +155,7 @@ public final class GamesControllerTest {
 
     @Test
     public void modifyDoorMissingKey() throws Exception {
-        this.mockMvc.perform(post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(getBytes("{}"))) //
+        this.mockMvc.perform(put(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(getBytes("{}"))) //
         .andExpect(status().isBadRequest()) //
         .andExpect(content().string("Payload is missing key 'status'"));
     }
@@ -193,7 +165,7 @@ public final class GamesControllerTest {
         when(this.gameRepository.retrieve(0L)).thenThrow(new GameDoesNotExistException(0L));
 
         this.mockMvc.perform(
-            post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
+            put(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
                 getBytes("{ \"status\" : \"SELECTED\" }"))) //
         .andExpect(status().isNotFound()) //
         .andExpect(content().string("Game '0' does not exist"));
@@ -204,7 +176,7 @@ public final class GamesControllerTest {
         when(this.gameRepository.retrieve(0L)).thenReturn(game);
 
         this.mockMvc.perform(
-            post("http://localhost/games/0/doors/4").contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
+            put("http://localhost/games/0/doors/4").contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
                 getBytes("{ \"status\" : \"SELECTED\" }"))) //
         .andExpect(status().isNotFound()) //
         .andExpect(content().string("Door '4' in game '0' does not exist"));
@@ -213,7 +185,7 @@ public final class GamesControllerTest {
     @Test
     public void modifyDoorIllegalArgumentException() throws Exception {
         this.mockMvc.perform(
-            post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(getBytes("{ \"status\": \"foo\"}"))) //
+            put(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(getBytes("{ \"status\": \"foo\"}"))) //
         .andExpect(status().isBadRequest()) //
         .andExpect(content().string("'foo' is an illegal value for key 'status'"));
     }
