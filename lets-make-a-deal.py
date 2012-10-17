@@ -32,20 +32,10 @@ def print_current_state(game_location, doors):
 		door = doors[key]
 		print('Door {} Status:  {}/{}'.format(i, door['status'], door['content']))
 
-def print_history(history_location, doors):
-	print('')
-	print('History:')
-	for history in requests.get(history_location).json['history']:
-		if 'game' in history:
-			print('Game:    {}'.format(history['status']));
-		else:
-			print('Door {}:  {}'.format(doors.index(history['door']), history['status']));
-
 ###############################################################################
 
 game_location = requests.post(GAME_ROOT).headers['Location']
 doors_location = get_link_location(game_location, 'doors')
-history_location = get_link_location(game_location, 'history')
 
 print("Let's Make a Deal!")
 
@@ -61,7 +51,5 @@ requests.post(doors.keys()[selection], data=json.dumps({ 'status': 'OPEN'}), hea
 
 doors = get_doors(doors_location)
 print_current_state(game_location, doors)
-
-print_history(history_location, doors.keys())
 
 requests.delete(game_location)

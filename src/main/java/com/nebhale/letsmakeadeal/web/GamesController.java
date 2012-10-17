@@ -47,52 +47,52 @@ final class GamesController {
 
     private final GameRepository gameRepository;
 
-    private final DoorResourceFactory doorResourceFactory;
+    private final GameResourceAssembler gameResourceAssembler;
 
-    private final GameResourceFactory gameResourceFactory;
-
-    private final HistoryResourceFactory historyResourceFactory;
+    private final DoorsResourceAssembler doorsResourceAssembler;
 
     @Autowired
-    GamesController(GameRepository gameRepository, DoorResourceFactory doorResourceFactory, GameResourceFactory gameResourceFactory,
-        HistoryResourceFactory historyResourceFactory) {
+    GamesController(GameRepository gameRepository, GameResourceAssembler gameResourceAssembler, DoorsResourceAssembler doorsResourceAssembler) {
         this.gameRepository = gameRepository;
-        this.doorResourceFactory = doorResourceFactory;
-        this.gameResourceFactory = gameResourceFactory;
-        this.historyResourceFactory = historyResourceFactory;
+        this.gameResourceAssembler = gameResourceAssembler;
+        this.doorsResourceAssembler = doorsResourceAssembler;
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "")
-    ResponseEntity<GameResource> createGame() {
+    ResponseEntity<Void> createGame() {
         Game game = this.gameRepository.create();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(linkTo(GamesController.class).slash(game.getId()).toUri());
 
-        return new ResponseEntity<GameResource>(headers, HttpStatus.CREATED);
+        return new ResponseEntity<Void>(headers, HttpStatus.CREATED);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/{gameId}", produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_XML_VALUE })
     ResponseEntity<GameResource> showGame(@PathVariable Long gameId) throws GameDoesNotExistException {
-        GameResource gameResource = this.gameResourceFactory.create(this.gameRepository.retrieve(gameId));
-        return new ResponseEntity<GameResource>(gameResource, HttpStatus.OK);
+        Game game = this.gameRepository.retrieve(gameId);
+        GameResource resource = this.gameResourceAssembler.toResource(game);
+
+        return new ResponseEntity<GameResource>(resource, HttpStatus.OK);
     }
 
     @RequestMapping(method = RequestMethod.DELETE, value = "/{gameId}")
-    ResponseEntity<GameResource> destroyGame(@PathVariable Long gameId) throws GameDoesNotExistException {
+    ResponseEntity<Void> destroyGame(@PathVariable Long gameId) throws GameDoesNotExistException {
         this.gameRepository.remove(gameId);
-        return new ResponseEntity<GameResource>(HttpStatus.OK);
+        return new ResponseEntity<Void>(HttpStatus.OK);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/{gameId}/doors", produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_XML_VALUE })
     ResponseEntity<DoorsResource> showDoors(@PathVariable Long gameId) throws GameDoesNotExistException {
-        DoorsResource doorsResource = this.doorResourceFactory.create(this.gameRepository.retrieve(gameId));
-        return new ResponseEntity<DoorsResource>(doorsResource, HttpStatus.OK);
+        Game game = this.gameRepository.retrieve(gameId);
+        DoorsResource resource = this.doorsResourceAssembler.toResource(game);
+
+        return new ResponseEntity<DoorsResource>(resource, HttpStatus.OK);
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/{gameId}/doors/{doorId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = {
         MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_XML_VALUE })
-    ResponseEntity<DoorResource> modifyDoor(@PathVariable Long gameId, @PathVariable Long doorId, @RequestBody Map<String, String> body)
+    ResponseEntity<Void> modifyDoor(@PathVariable Long gameId, @PathVariable Long doorId, @RequestBody Map<String, String> body)
         throws MissingKeyException, GameDoesNotExistException, IllegalTransitionException, DoorDoesNotExistException {
         DoorStatus status = getStatus(body);
         Game game = this.gameRepository.retrieve(gameId);
@@ -105,39 +105,22 @@ final class GamesController {
             throw new IllegalTransitionException(gameId, doorId, status);
         }
 
-        DoorResource doorResource = this.doorResourceFactory.create(game, doorId);
-        return new ResponseEntity<DoorResource>(doorResource, HttpStatus.OK);
+        return new ResponseEntity<Void>(HttpStatus.OK);
     }
 
-    @RequestMapping(method = RequestMethod.GET, value = "/{gameId}/history", produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_XML_VALUE })
-    ResponseEntity<HistoryResource> showHistory(@PathVariable Long gameId) throws GameDoesNotExistException {
-        HistoryResource historyResource = this.historyResourceFactory.create(this.gameRepository.retrieve(gameId));
-        return new ResponseEntity<HistoryResource>(historyResource, HttpStatus.OK);
-    }
-
-    @ExceptionHandler(GameDoesNotExistException.class)
-    ResponseEntity<String> handleGameDoesNotExistException(GameDoesNotExistException e) {
+    @ExceptionHandler({ GameDoesNotExistException.class, DoorDoesNotExistException.class })
+    ResponseEntity<String> handleNotFounds(Exception e) {
         return new ResponseEntity<String>(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(DoorDoesNotExistException.class)
-    ResponseEntity<String> handleDoorDoesNotExistException(DoorDoesNotExistException e) {
-        return new ResponseEntity<String>(e.getMessage(), HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
+    @ExceptionHandler({ IllegalArgumentException.class, MissingKeyException.class })
+    ResponseEntity<String> handleBadRequests(Exception e) {
         return new ResponseEntity<String>(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(IllegalTransitionException.class)
-    ResponseEntity<String> handleIllegalTransitionException(IllegalTransitionException e) {
+    ResponseEntity<String> handleConflicts(Exception e) {
         return new ResponseEntity<String>(e.getMessage(), HttpStatus.CONFLICT);
-    }
-
-    @ExceptionHandler(MissingKeyException.class)
-    ResponseEntity<String> handleMissingKeyException(MissingKeyException e) {
-        return new ResponseEntity<String>(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     private DoorStatus getStatus(Map<String, String> body) throws MissingKeyException {

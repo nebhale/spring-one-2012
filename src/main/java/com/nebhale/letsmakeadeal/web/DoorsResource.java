@@ -16,6 +16,7 @@
 
 package com.nebhale.letsmakeadeal.web;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -23,21 +24,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.springframework.hateoas.ResourceSupport;
 
-@XmlRootElement(name = "doors")
+@XmlRootElement(name = "door")
 final class DoorsResource extends ResourceSupport {
 
-    private final Set<DoorResource> doors;
-
-    DoorsResource() {
-        this(null);
-    }
-
-    DoorsResource(Set<DoorResource> doors) {
-        this.doors = doors;
-    }
-
     @XmlElement(name = "door")
-    public Set<DoorResource> getDoors() {
-        return this.doors;
-    }
+    public volatile Set<DoorResource> doors = new HashSet<DoorResource>();
 }

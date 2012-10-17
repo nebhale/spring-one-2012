@@ -19,7 +19,6 @@ package com.nebhale.letsmakeadeal.web;
 import static com.jayway.jsonassert.JsonAssert.collectionWithSize;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -55,8 +54,6 @@ public final class GamesControllerTest {
 
     private static final String DOOR_LOCATION = DOORS_LOCATION + "/1";
 
-    private static final String HISTORY_LOCATION = GAME_LOCATION + "/history";
-
     private final Game game;
     {
         Set<Door> doors = new HashSet<Door>();
@@ -69,7 +66,8 @@ public final class GamesControllerTest {
     private final GameRepository gameRepository = mock(GameRepository.class);
 
     private final MockMvc mockMvc = standaloneSetup(
-        new GamesController(gameRepository, new DoorResourceFactory(), new GameResourceFactory(), new HistoryResourceFactory())).build();
+        new GamesController(gameRepository, new GameResourceAssembler(), new DoorsResourceAssembler(new DoorResourceAssembler()))) //
+    .build();
 
     @Test
     public void createGame() throws Exception {
@@ -88,10 +86,9 @@ public final class GamesControllerTest {
         this.mockMvc.perform(get(GAME_LOCATION).accept(MediaType.APPLICATION_JSON)) //
         .andExpect(status().isOk()) //
         .andExpect(jsonPath("$.status").value("AWAITING_INITIAL_SELECTION")) //
-        .andExpect(jsonPath("$.links").value(collectionWithSize(equalTo(3)))) //
+        .andExpect(jsonPath("$.links").value(collectionWithSize(equalTo(2)))) //
         .andExpect(jsonPath("$.links[?(@.rel==self)].href[0]").value(GAME_LOCATION)) //
-        .andExpect(jsonPath("$.links[?(@.rel==doors)].href[0]").value(GAME_LOCATION + "/doors")) //
-        .andExpect(jsonPath("$.links[?(@.rel==history)].href[0]").value(GAME_LOCATION + "/history"));
+        .andExpect(jsonPath("$.links[?(@.rel==doors)].href[0]").value(GAME_LOCATION + "/doors"));
     }
 
     @Test
@@ -159,8 +156,7 @@ public final class GamesControllerTest {
         this.mockMvc.perform(
             post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
                 getBytes("{ \"status\" : \"SELECTED\" }"))) //
-        .andExpect(status().isOk()) //
-        .andExpect(jsonPath("$.status").value("SELECTED"));
+        .andExpect(status().isOk());
     }
 
     @Test
@@ -171,8 +167,7 @@ public final class GamesControllerTest {
         this.mockMvc.perform(
             post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(
                 getBytes("{ \"status\" : \"OPEN\" }"))) //
-        .andExpect(status().isOk()) //
-        .andExpect(jsonPath("$.status").value("OPEN"));
+        .andExpect(status().isOk());
     }
 
     @Test
@@ -221,33 +216,6 @@ public final class GamesControllerTest {
             post(DOOR_LOCATION).contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(getBytes("{ \"status\": \"foo\"}"))) //
         .andExpect(status().isBadRequest()) //
         .andExpect(content().string("'foo' is an illegal value for key 'status'"));
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    public void showHistory() throws Exception {
-        when(this.gameRepository.retrieve(0L)).thenReturn(game);
-        game.select(2L);
-
-        this.mockMvc.perform(get(HISTORY_LOCATION).accept(MediaType.APPLICATION_JSON)) //
-        .andExpect(status().isOk()) //
-        .andExpect(jsonPath("$.history").isArray()) //
-        .andExpect(jsonPath("$.history").value(collectionWithSize(equalTo(4)))) //
-        .andExpect(jsonPath("$.history[*].game").value(hasItems(GAME_LOCATION))) //
-        .andExpect(jsonPath("$.history[*].door").value(hasItems(DOOR_LOCATION))) //
-        .andExpect(jsonPath("$.history[*].status").value(hasItems("AWAITING_INITIAL_SELECTION", "SELECTED", "OPEN", "AWAITING_FINAL_SELECTION"))) //
-        .andExpect(jsonPath("$.links").value(collectionWithSize(equalTo(1)))) //
-        .andExpect(jsonPath("$.links[?(@.rel==self)].href[0]").value(HISTORY_LOCATION));
-    }
-
-    @Test
-    public void showHistoryGameDoesNotExist() throws Exception {
-        when(this.gameRepository.retrieve(0L)).thenThrow(new GameDoesNotExistException(0L));
-
-        this.mockMvc.perform(get(HISTORY_LOCATION).accept(MediaType.APPLICATION_JSON)) //
-        .andExpect(status().isNotFound()) //
-        .andExpect(content().string("Game '0' does not exist"));
-
     }
 
     private byte[] getBytes(String s) throws UnsupportedEncodingException {
